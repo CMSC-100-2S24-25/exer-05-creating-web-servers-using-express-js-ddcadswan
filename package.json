@@ -1,0 +1,7 @@
+{
+  "name": "exer-05",
+  "type": "module",
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
