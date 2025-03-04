@@ -8,6 +8,7 @@ app.use(express.json());
 
 // FUNCTION TO READ BOOKS from books.txt file
 function readInputs(){
+    if (!fs.existsSync('books.txt')) return []; 
     const data = fs.readFileSync('books.txt', 'utf8');
     return data.split('\n').map(line => {
         const [bookName, isbn, author, year] = line.split(',');
@@ -45,8 +46,23 @@ app.post('/add-book', (req, res) => {
     res.json({success: true});
 });
 
-app.get('/', (req, res) => {
-    res.send('Hello');
+// GET method to find books by isbn and author
+app.get('/find-by-isbn-author', (req, res) => {
+    const {isbn, author} = req.query;
+
+    if (!isbn || !author){
+        return res.json({success: false});
+    }
+
+    const books = readInputs();
+    const foundBooks = books.filter(book => book.isbn === isbn && book.author.toLowerCase() === author.toLowerCase());
+
+    if (foundBooks.length === 0){
+        return res.json({success: false});
+    }
+    res.json(foundBooks);
+
+    // GET method by author only
 }); 
 
 
