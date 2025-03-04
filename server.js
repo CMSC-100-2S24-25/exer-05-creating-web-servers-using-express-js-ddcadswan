@@ -1,69 +1,86 @@
 import express from 'express';
-// instantiate the server
 import fs from 'fs';
 
 const app = express();
-
 app.use(express.json());
 
-// FUNCTION TO READ BOOKS from books.txt file
-function readInputs(){
-    if (!fs.existsSync('books.txt')) return []; 
+// Function to read books from books.txt file
+function readInputs() {
+    if (!fs.existsSync('books.txt')) return [];
     const data = fs.readFileSync('books.txt', 'utf8');
     return data.split('\n').map(line => {
         const [bookName, isbn, author, year] = line.split(',');
-        return {bookName, isbn, author, year};
+        return { bookName, isbn, author, year };
     });
 }
 
-// FUNCTION TO WRITE BOOKS to books.txt
-function writeToFile(books){
-    const bookData = books.map(book => `${book.bookName}, ${book.isbn}, ${book.author}, ${book.year}`).join('\n');
+// Function to write books to books.txt
+function writeToFile(books) {
+    const bookData = books.map(book => `${book.bookName},${book.isbn},${book.author},${book.year}`).join('\n');
     fs.writeFileSync('books.txt', bookData);
 }
 
-// POST method to add the books to the file
+// POST method to add books
 app.post('/add-book', (req, res) => {
-    const {bookName, isbn, author, year} = req.body;
+    const { bookName, isbn, author, year } = req.body;
 
-    // Check if there are empty values
-    if(!bookName || !isbn || !author || !year){
-        return res.json({success: false});
+    if (!bookName || !isbn || !author || !year) {
+        return res.json({ success: false, message: 'Missing required fields' });
     }
 
-    // Check if ISBN is unique
     const books = readInputs();
     if (books.some(book => book.isbn === isbn)) {
-        return res.json({success: false});
+        return res.json({ success: false, message: 'Book with this ISBN already exists' });
     }
 
-    // Add book
-    books.push({bookName, isbn, author, year});
-
-    // Write
+    books.push({ bookName, isbn, author, year });
     writeToFile(books);
 
-    res.json({success: true});
+    res.json({ success: true, book: { bookName, isbn, author, year } });
 });
 
 // GET method to find books by isbn and author
 app.get('/find-by-isbn-author', (req, res) => {
-    const {isbn, author} = req.query;
+    const { isbn, author } = req.query;
 
-    if (!isbn || !author){
-        return res.json({success: false});
+    if (!isbn || !author) {
+        return res.json({ success: false, message: 'ISBN and Author are required' });
     }
 
     const books = readInputs();
-    const foundBooks = books.filter(book => book.isbn === isbn && book.author.toLowerCase() === author.toLowerCase());
+    const foundBooks = books.filter(book => 
+        book.isbn.trim() === isbn.trim() && 
+        book.author.trim().toLowerCase() === author.trim().toLowerCase()
+    );
 
-    if (foundBooks.length === 0){
-        return res.json({success: false});
+    if (foundBooks.length === 0) {
+        return res.json({ success: false, message: 'No books found' });
     }
-    res.json(foundBooks);
 
-    // GET method by author only
-}); 
+    res.json({ success: true, foundBooks });
+});
 
+// GET method to find books by author only
+app.get('/find-by-author', (req, res) => {
+    const { author } = req.query;
 
-app.listen(3000, () => { console.log('Server started at port 3000')} );
+    if (!author) {
+        return res.json({ success: false, message: 'Author is required' });
+    }
+
+    const books = readInputs();
+    const foundBooks = books.filter(book => 
+        book.author.trim().toLowerCase() === author.trim().toLowerCase()
+    );
+
+    if (foundBooks.length === 0) {
+        return res.json({ success: false, message: 'No books found' });
+    }
+
+    res.json({ success: true, foundBooks });
+});
+
+// Start the server
+app.listen(3000, () => { 
+    console.log('Server started at http://localhost:3000');
+});
